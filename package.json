@@ -1,18 +1,29 @@
 {
-  "name": "usercrud",
-  "private": true,
+  "name": "user-crud-backend",
   "version": "1.0.0",
-  "description": "Railpack-ready workspace that exposes the backend API located in ./backend",
-  "workspaces": [
-    "backend"
-  ],
+  "description": "Backend API for User CRUD",
+  "main": "server.js",
+  "type": "commonjs",
   "engines": {
     "node": ">=18.18.0"
   },
   "scripts": {
-    "build": "npm run build --workspace backend",
-    "start": "npm run start --workspace backend",
-    "dev": "npm run dev --workspace backend"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "node -e \"console.log('No build step required for this API')\""
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "mongoose": "^8.6.0",
+    "uuid": "^9.0.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
 
