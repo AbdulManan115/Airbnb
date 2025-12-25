@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 
 const guestSchema = new mongoose.Schema(
   {
+    hostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
     name: {
       type: String,
       required: true,
@@ -16,10 +21,17 @@ const guestSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       match: [/.+@.+\..+/, 'Please enter a valid email address']
+    },
+    idCard: {
+      type: String,
+      default: null
+    },
+    profilePicture: {
+      type: String,
+      default: null
     }
   },
   {
@@ -39,7 +51,9 @@ const guestSchema = new mongoose.Schema(
   }
 );
 
+// Create compound index for email uniqueness per host
+guestSchema.index({ email: 1, hostId: 1 }, { unique: true });
+
 const Guest = mongoose.model('Guest', guestSchema);
 
 module.exports = Guest;
-

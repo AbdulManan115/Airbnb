@@ -1,8 +1,17 @@
 const Property = require('../models/Property');
+const { getEffectiveHostId, isSuperAdmin } = require('../middleware/multiTenantMiddleware');
 
 const getProperties = async (req, res) => {
   try {
-    const properties = await Property.find().sort({ createdAt: -1 });
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId ? { hostId } : {}; // Empty query for superadmin
+    
+    const properties = await Property.find(query)
+      .populate('hostId', 'name email')
+      .sort({ createdAt: -1 });
+    
     res.json(properties);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -11,10 +20,19 @@ const getProperties = async (req, res) => {
 
 const getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id);
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can see any property
+    
+    const property = await Property.findOne(query).populate('hostId', 'name email');
+    
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
+    
     res.json(property);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -56,7 +74,10 @@ const createProperty = async (req, res) => {
   }
 
   try {
+    const hostId = getEffectiveHostId(req);
+    
     const propertyData = {
+      hostId,
       title,
       description,
       price,
@@ -105,6 +126,8 @@ const updateProperty = async (req, res) => {
   }
 
   try {
+    const hostId = getEffectiveHostId(req);
+    
     const updateData = {};
     if (typeof title !== 'undefined') updateData.title = title;
     if (typeof description !== 'undefined') updateData.description = description;
@@ -116,11 +139,16 @@ const updateProperty = async (req, res) => {
     if (typeof area !== 'undefined') updateData.area = area;
     if (typeof status !== 'undefined') updateData.status = status;
 
-    const updatedProperty = await Property.findByIdAndUpdate(
-      req.params.id,
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can update any property
+
+    const updatedProperty = await Property.findOneAndUpdate(
+      query,
       updateData,
       { new: true, runValidators: true, overwrite: false }
-    );
+    ).populate('hostId', 'name email');
 
     if (!updatedProperty) {
       return res.status(404).json({ error: 'Property not found' });
@@ -134,10 +162,19 @@ const updateProperty = async (req, res) => {
 
 const deleteProperty = async (req, res) => {
   try {
-    const deletedProperty = await Property.findByIdAndDelete(req.params.id);
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can delete any property
+    
+    const deletedProperty = await Property.findOneAndDelete(query);
+    
     if (!deletedProperty) {
       return res.status(404).json({ error: 'Property not found' });
     }
+    
     res.json({ message: 'Property deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

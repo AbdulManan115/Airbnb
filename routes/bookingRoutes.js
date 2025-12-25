@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
 const {
   getBookings,
   getBookingById,
@@ -7,6 +8,9 @@ const {
   updateBooking,
   deleteBooking
 } = require('../controllers/bookingController');
+
+// All booking routes require authentication
+router.use(protect);
 
 // Get all bookings
 router.get('/', getBookings);

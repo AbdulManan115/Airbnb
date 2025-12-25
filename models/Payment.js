@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema(
   {
+    hostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
     booking_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Booking',

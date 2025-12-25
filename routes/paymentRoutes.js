@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
 const {
   getPayments,
   getPaymentById,
@@ -7,6 +8,9 @@ const {
   updatePayment,
   deletePayment
 } = require('../controllers/paymentController');
+
+// All payment routes require authentication
+router.use(protect);
 
 // Get all payments
 router.get('/', getPayments);

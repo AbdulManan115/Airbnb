@@ -4,6 +4,11 @@ const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'];
 
 const taskSchema = new mongoose.Schema(
   {
+    hostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
     property_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Property',

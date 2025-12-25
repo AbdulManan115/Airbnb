@@ -1,15 +1,21 @@
 const Task = require('../models/Task');
 const Property = require('../models/Property');
 const User = require('../models/User');
+const { getEffectiveHostId } = require('../middleware/multiTenantMiddleware');
 
 const populateTaskQuery = (query) =>
   query
+    .populate('hostId', 'name email')
     .populate('property_id', 'title location status')
     .populate('assigned_to', 'name email role');
 
 const getTasks = async (req, res) => {
   try {
-    let query = Task.find();
+    const hostId = getEffectiveHostId(req);
+    
+    // Build base query
+    const baseQuery = hostId ? { hostId } : {}; // Empty query for superadmin
+    let query = Task.find(baseQuery);
 
     // Optional filters
     const { status, assigned_to, property_id } = req.query;
@@ -53,8 +59,11 @@ const createTask = async (req, res) => {
     });
   }
 
+  const hostId = getEffectiveHostId(req);
+  
   try {
-    const property = await Property.findById(property_id);
+    const propertyQuery = hostId ? { _id: property_id, hostId } : { _id: property_id };
+    const property = await Property.findOne(propertyQuery);
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
@@ -63,7 +72,11 @@ const createTask = async (req, res) => {
   }
 
   try {
-    const user = await User.findById(assigned_to);
+    // For team members, check if they belong to the same host
+    const userQuery = hostId 
+      ? { _id: assigned_to, $or: [{ _id: hostId }, { hostId: hostId }] } 
+      : { _id: assigned_to };
+    const user = await User.findOne(userQuery);
     if (!user) {
       return res.status(404).json({ error: 'Assigned user not found' });
     }
@@ -73,6 +86,7 @@ const createTask = async (req, res) => {
 
   try {
     const task = new Task({
+      hostId,
       property_id,
       title,
       description,
@@ -129,6 +143,13 @@ const updateTask = async (req, res) => {
   }
 
   try {
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can update any task
+    
     const updateData = {};
     if (typeof property_id !== 'undefined') updateData.property_id = property_id;
     if (typeof title !== 'undefined') updateData.title = title;
@@ -137,7 +158,7 @@ const updateTask = async (req, res) => {
     if (typeof status !== 'undefined') updateData.status = status;
 
     const updatedTask = await populateTaskQuery(
-      Task.findByIdAndUpdate(req.params.id, updateData, {
+      Task.findOneAndUpdate(query, updateData, {
         new: true,
         runValidators: true,
         overwrite: false
@@ -157,10 +178,19 @@ const updateTask = async (req, res) => {
 
 const deleteTask = async (req, res) => {
   try {
-    const deletedTask = await Task.findByIdAndDelete(req.params.id);
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can delete any task
+    
+    const deletedTask = await Task.findOneAndDelete(query);
+    
     if (!deletedTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
+    
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -1,11 +1,19 @@
 const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
+const { getEffectiveHostId } = require('../middleware/multiTenantMiddleware');
 
 const getPayments = async (req, res) => {
   try {
-    const payments = await Payment.find()
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId ? { hostId } : {}; // Empty query for superadmin
+    
+    const payments = await Payment.find(query)
+      .populate('hostId', 'name email')
       .populate('booking_id', 'start_date end_date amount')
       .sort({ createdAt: -1 });
+    
     res.json(payments);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -14,12 +22,21 @@ const getPayments = async (req, res) => {
 
 const getPaymentById = async (req, res) => {
   try {
-    const payment = await Payment.findById(req.params.id)
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can see any payment
+    
+    const payment = await Payment.findOne(query)
+      .populate('hostId', 'name email')
       .populate('booking_id', 'start_date end_date amount');
     
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
+    
     res.json(payment);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -52,9 +69,12 @@ const createPayment = async (req, res) => {
     paymentDate = new Date(); // Default to current date
   }
 
-  // Validate that booking exists
+  // Validate that booking exists and belongs to this host
+  const hostId = getEffectiveHostId(req);
+  
   try {
-    const booking = await Booking.findById(booking_id);
+    const bookingQuery = hostId ? { _id: booking_id, hostId } : { _id: booking_id };
+    const booking = await Booking.findOne(bookingQuery);
     if (!booking) {
       return res.status(404).json({ error: 'Booking not found' });
     }
@@ -64,6 +84,7 @@ const createPayment = async (req, res) => {
 
   try {
     const paymentData = {
+      hostId,
       booking_id,
       amount,
       date: paymentDate
@@ -74,6 +95,7 @@ const createPayment = async (req, res) => {
     
     // Populate the payment before returning
     const populatedPayment = await Payment.findById(newPayment._id)
+      .populate('hostId', 'name email')
       .populate('booking_id', 'start_date end_date amount');
 
     res.status(201).json(populatedPayment);
@@ -112,16 +134,24 @@ const updatePayment = async (req, res) => {
   }
 
   try {
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can update any payment
+    
     const updateData = {};
     if (typeof booking_id !== 'undefined') updateData.booking_id = booking_id;
     if (typeof amount !== 'undefined') updateData.amount = amount;
     if (typeof date !== 'undefined') updateData.date = paymentDate;
 
-    const updatedPayment = await Payment.findByIdAndUpdate(
-      req.params.id,
+    const updatedPayment = await Payment.findOneAndUpdate(
+      query,
       updateData,
       { new: true, runValidators: true, overwrite: false }
     )
+      .populate('hostId', 'name email')
       .populate('booking_id', 'start_date end_date amount');
 
     if (!updatedPayment) {
@@ -136,10 +166,19 @@ const updatePayment = async (req, res) => {
 
 const deletePayment = async (req, res) => {
   try {
-    const deletedPayment = await Payment.findByIdAndDelete(req.params.id);
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can delete any payment
+    
+    const deletedPayment = await Payment.findOneAndDelete(query);
+    
     if (!deletedPayment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
+    
     res.json({ message: 'Payment deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

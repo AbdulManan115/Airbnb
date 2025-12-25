@@ -1,14 +1,13 @@
 # Dependencies
 node_modules/
-*/node_modules/
 
-# Environment files
-*.env
+# Environment variables
+.env
+.env.local
+.env.production
 
-# Build artifacts
-dist/
-build/
-.next/
+# Uploads directory
+uploads/
 
 # Logs
 *.log
@@ -16,19 +15,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS / tooling
+# OS files
 .DS_Store
 Thumbs.db
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Windows reserved names
-nul
-con
-prn
-aux
-
-# Local experiments
-Airbnb/
-
-
+# Test coverage
+coverage/

@@ -1,9 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const ROLES = ['user', 'admin', 'manager'];
-const DEFAULT_ROLE = 'user';
-
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -20,6 +17,21 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/.+@.+\..+/, 'Please enter a valid email address']
     },
+    phone: {
+      type: String,
+      required: false,
+      trim: true,
+      default: null,
+      validate: {
+        validator: function(v) {
+          // Allow null or empty, or validate phone format
+          if (!v) return true;
+          // Basic phone validation: allows +, -, (), spaces, and digits
+          return /^[\d\s\-\+\(\)]+$/.test(v);
+        },
+        message: 'Please enter a valid phone number'
+      }
+    },
     password: {
       type: String,
       required: true,
@@ -27,9 +39,21 @@ const userSchema = new mongoose.Schema(
       select: false // Don't return password by default
     },
     role: {
-      type: String,
-      enum: ROLES,
-      default: DEFAULT_ROLE
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Role', // Reference to Role model
+      required: false,
+      default: null
+    },
+    host: {
+      type: Boolean,
+      default: false
+    },
+    hostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
+      default: null,
+      // Only team members have a hostId; hosts and superadmin don't
     },
     permissions: {
       type: [{
@@ -37,6 +61,26 @@ const userSchema = new mongoose.Schema(
         ref: 'Permission'
       }],
       default: []
+    },
+    // Additional fields for hosts
+    businessName: {
+      type: String,
+      required: false,
+      default: null,
+      trim: true
+    },
+    // Additional fields for staff (both host staff and superadmin staff)
+    department: {
+      type: String,
+      required: false,
+      default: null,
+      trim: true
+    },
+    accessLevel: {
+      type: String,
+      required: false,
+      default: null,
+      enum: [null, 'full', 'limited', 'read-only']
     }
   },
   {
@@ -71,10 +115,15 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
+// Helper method to get role type
+userSchema.methods.getRoleType = function() {
+  if (typeof this.role === 'string') {
+    return 'string'; // superadmin or legacy role
+  }
+  return 'objectid'; // Role reference
+};
 
-User.ROLES = ROLES;
-User.DEFAULT_ROLE = DEFAULT_ROLE;
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;
 

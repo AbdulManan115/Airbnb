@@ -1,0 +1,48 @@
+===============================================
+ENVIRONMENT SETUP INSTRUCTIONS
+===============================================
+
+Create a file named ".env" in the root directory with these contents:
+
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/airbnb_service
+JWT_SECRET=your-secret-key-change-in-production-to-something-very-secure
+JWT_EXPIRE=7d
+SUPERADMIN_EMAIL=admin@airbnb.com
+SUPERADMIN_PASSWORD=Admin@12345
+
+===============================================
+IMPORTANT NOTES:
+===============================================
+
+1. Change JWT_SECRET to a strong random string in production
+2. Change SUPERADMIN_PASSWORD to a strong password
+3. Never commit the .env file to version control
+4. The .env file is already in .gitignore
+
+===============================================
+QUICK START:
+===============================================
+
+1. Create .env file with above contents
+2. Run: npm install
+3. Run: npm start
+4. Test superadmin login:
+
+   POST http://localhost:5000/api/auth/login
+   Body: {
+     "email": "admin@airbnb.com",
+     "password": "Admin@12345"
+   }
+
+5. Register a host:
+
+   POST http://localhost:5000/api/auth/register
+   Body: {
+     "name": "Test Host",
+     "email": "host@test.com",
+     "password": "password123"
+   }
+
+===============================================
+

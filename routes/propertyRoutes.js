@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
 const {
   getProperties,
   getPropertyById,
@@ -7,6 +8,9 @@ const {
   updateProperty,
   deleteProperty
 } = require('../controllers/propertyController');
+
+// All property routes require authentication
+router.use(protect);
 
 // Get all properties
 router.get('/', getProperties);

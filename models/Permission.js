@@ -1,5 +1,19 @@
 const mongoose = require('mongoose');
 
+// Define sub-permission schema (for nested permissions)
+const subPermissionSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  sub_permissions: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  }
+}, { _id: false });
+
+// Main permission schema with recursive sub-permissions
 const permissionSchema = new mongoose.Schema(
   {
     name: {
@@ -10,35 +24,16 @@ const permissionSchema = new mongoose.Schema(
       minlength: 2,
       maxlength: 100
     },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: 200,
-      default: ''
-    },
-    roles: {
-      admin: {
-        type: Boolean,
-        default: false
-      },
-      manager: {
-        type: Boolean,
-        default: false
-      },
-      staff: {
-        type: Boolean,
-        default: false
-      }
+    sub_permissions: {
+      type: [subPermissionSchema],
+      default: []
     }
   },
   {
     timestamps: true,
     toJSON: {
-      virtuals: true,
       transform: (doc, ret) => {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
+        // Keep _id for compatibility with the sample format
         return ret;
       }
     },
@@ -48,8 +43,8 @@ const permissionSchema = new mongoose.Schema(
   }
 );
 
-// Ensure name uniqueness with case-insensitive comparison
-permissionSchema.index({ name: 1 }, { unique: true });
+// Index for faster queries
+permissionSchema.index({ name: 1 });
 
 const Permission = mongoose.model('Permission', permissionSchema);
 
