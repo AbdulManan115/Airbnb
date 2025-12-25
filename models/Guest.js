@@ -15,12 +15,10 @@ const guestSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: true,
       trim: true
     },
     email: {
       type: String,
-      required: true,
       lowercase: true,
       trim: true,
       match: [/.+@.+\..+/, 'Please enter a valid email address']
@@ -51,8 +49,8 @@ const guestSchema = new mongoose.Schema(
   }
 );
 
-// Create compound index for email uniqueness per host
-guestSchema.index({ email: 1, hostId: 1 }, { unique: true });
+// Create compound index for email uniqueness per host (sparse allows multiple null emails)
+guestSchema.index({ email: 1, hostId: 1 }, { unique: true, sparse: true });
 
 const Guest = mongoose.model('Guest', guestSchema);
 

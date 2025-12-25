@@ -88,7 +88,7 @@ const getBookingById = async (req, res) => {
 };
 
 const createBooking = async (req, res) => {
-  const { property_id, guest_id, start_date, end_date, amount } = req.body;
+  const { property_id, guest_id, start_date, end_date, amount, discount, payment_status } = req.body;
 
   // Validate required fields
   if (!property_id || !guest_id || !start_date || !end_date || amount === undefined) {
@@ -100,6 +100,21 @@ const createBooking = async (req, res) => {
   // Validate amount
   if (amount < 0) {
     return res.status(400).json({ error: 'Amount must be a positive number' });
+  }
+
+  // Validate discount if provided
+  if (discount !== undefined && discount < 0) {
+    return res.status(400).json({ error: 'Discount must be a non-negative number' });
+  }
+
+  // Validate payment_status if provided
+  if (payment_status) {
+    const validPaymentStatuses = ['unpaid', 'partially-paid', 'paid', 'refunded'];
+    if (!validPaymentStatuses.includes(payment_status)) {
+      return res.status(400).json({ 
+        error: `Invalid payment status. Must be one of: ${validPaymentStatuses.join(', ')}` 
+      });
+    }
   }
 
   // Validate dates
@@ -152,6 +167,16 @@ const createBooking = async (req, res) => {
       amount
     };
 
+    // Add discount if provided
+    if (discount !== undefined) {
+      bookingData.discount = discount;
+    }
+
+    // Add payment_status if provided
+    if (payment_status) {
+      bookingData.payment_status = payment_status;
+    }
+
     const booking = new Booking(bookingData);
     const newBooking = await booking.save();
     
@@ -168,11 +193,16 @@ const createBooking = async (req, res) => {
 };
 
 const updateBooking = async (req, res) => {
-  const { property_id, guest_id, start_date, end_date, amount } = req.body;
+  const { property_id, guest_id, start_date, end_date, amount, discount } = req.body;
 
   // Validate amount if provided
   if (amount !== undefined && amount < 0) {
     return res.status(400).json({ error: 'Amount must be a positive number' });
+  }
+
+  // Validate discount if provided
+  if (discount !== undefined && discount < 0) {
+    return res.status(400).json({ error: 'Discount must be a non-negative number' });
   }
 
   // Validate dates if provided
@@ -248,6 +278,7 @@ const updateBooking = async (req, res) => {
     if (typeof start_date !== 'undefined') updateData.start_date = startDate;
     if (typeof end_date !== 'undefined') updateData.end_date = endDate;
     if (typeof amount !== 'undefined') updateData.amount = amount;
+    if (typeof discount !== 'undefined') updateData.discount = discount;
 
     const updatedBooking = await Booking.findOneAndUpdate(
       query,
@@ -289,11 +320,99 @@ const deleteBooking = async (req, res) => {
   }
 };
 
+const updateBookingStatus = async (req, res) => {
+  const { status } = req.body;
+
+  // Validate required fields
+  if (!status) {
+    return res.status(400).json({ error: 'Status is required' });
+  }
+
+  // Validate status value
+  const validStatuses = ['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ 
+      error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` 
+    });
+  }
+
+  try {
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can update any booking
+    
+    const updatedBooking = await Booking.findOneAndUpdate(
+      query,
+      { status },
+      { new: true, runValidators: true }
+    )
+      .populate('hostId', 'name email')
+      .populate('property_id', 'title location price')
+      .populate('guest_id', 'name phone email');
+
+    if (!updatedBooking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    res.json(updatedBooking);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const updatePaymentStatus = async (req, res) => {
+  const { payment_status } = req.body;
+
+  // Validate required fields
+  if (!payment_status) {
+    return res.status(400).json({ error: 'Payment status is required' });
+  }
+
+  // Validate payment_status value
+  const validPaymentStatuses = ['unpaid', 'partially-paid', 'paid', 'refunded'];
+  if (!validPaymentStatuses.includes(payment_status)) {
+    return res.status(400).json({ 
+      error: `Invalid payment status. Must be one of: ${validPaymentStatuses.join(', ')}` 
+    });
+  }
+
+  try {
+    const hostId = getEffectiveHostId(req);
+    
+    // Build query based on user role
+    const query = hostId 
+      ? { _id: req.params.id, hostId } 
+      : { _id: req.params.id }; // Superadmin can update any booking
+    
+    const updatedBooking = await Booking.findOneAndUpdate(
+      query,
+      { payment_status },
+      { new: true, runValidators: true }
+    )
+      .populate('hostId', 'name email')
+      .populate('property_id', 'title location price')
+      .populate('guest_id', 'name phone email');
+
+    if (!updatedBooking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    res.json(updatedBooking);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getBookings,
   getBookingById,
   createBooking,
   updateBooking,
-  deleteBooking
+  deleteBooking,
+  updateBookingStatus,
+  updatePaymentStatus
 };
 

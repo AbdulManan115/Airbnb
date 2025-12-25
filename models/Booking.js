@@ -35,6 +35,21 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'],
+      default: 'pending'
+    },
+    payment_status: {
+      type: String,
+      enum: ['unpaid', 'partially-paid', 'paid', 'refunded'],
+      default: 'unpaid'
     }
   },
   {

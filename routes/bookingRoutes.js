@@ -6,7 +6,9 @@ const {
   getBookingById,
   createBooking,
   updateBooking,
-  deleteBooking
+  deleteBooking,
+  updateBookingStatus,
+  updatePaymentStatus
 } = require('../controllers/bookingController');
 
 // All booking routes require authentication
@@ -23,6 +25,12 @@ router.get('/:id', getBookingById);
 
 // Update booking
 router.put('/:id', updateBooking);
+
+// Update booking status only
+router.patch('/:id/status', updateBookingStatus);
+
+// Update payment status only
+router.patch('/:id/payment-status', updatePaymentStatus);
 
 // Delete booking
 router.delete('/:id', deleteBooking);

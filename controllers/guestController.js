@@ -46,18 +46,20 @@ const createGuest = async (req, res) => {
   const { name, phone, email } = req.body;
 
   // Validate required fields
-  if (!name || !phone || !email) {
+  if (!name) {
     return res.status(400).json({ 
-      error: 'Name, phone, and email are required' 
+      error: 'Name is required' 
     });
   }
 
-  // Validate email format
-  const emailRegex = /.+@.+\..+/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ 
-      error: 'Please enter a valid email address' 
-    });
+  // Validate email format if provided
+  if (email) {
+    const emailRegex = /.+@.+\..+/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        error: 'Please enter a valid email address' 
+      });
+    }
   }
 
   try {
@@ -65,10 +67,12 @@ const createGuest = async (req, res) => {
     
     const guestData = {
       hostId,
-      name,
-      phone,
-      email
+      name
     };
+
+    // Add optional fields only if provided
+    if (phone) guestData.phone = phone;
+    if (email) guestData.email = email;
 
     // Handle file uploads
     if (req.files) {
