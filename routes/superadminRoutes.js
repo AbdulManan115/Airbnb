@@ -12,9 +12,19 @@ const {
   getHostPayments,
   getSystemStatistics
 } = require('../controllers/superadminController');
+const {
+  impersonateHost,
+  stopImpersonation
+} = require('../controllers/impersonationController');
 
-// All routes require superadmin authentication
+// All routes require authentication
 router.use(protect);
+
+// Impersonation endpoints (require superadmin)
+router.post('/impersonate/:hostId', isSuperAdmin, impersonateHost);
+router.post('/stop-impersonation', stopImpersonation); // No isSuperAdmin check - handled in controller
+
+// All other routes require superadmin authentication
 router.use(isSuperAdmin);
 
 // System statistics

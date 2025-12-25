@@ -11,6 +11,10 @@ JWT_EXPIRE=7d
 SUPERADMIN_EMAIL=admin@airbnb.com
 SUPERADMIN_PASSWORD=Admin@12345
 
+# Impersonation Settings (Optional - defaults will be used if not set)
+IMPERSONATION_TOKEN_EXPIRY=8h
+ENABLE_IMPERSONATION_LOGGING=false
+
 ===============================================
 IMPORTANT NOTES:
 ===============================================

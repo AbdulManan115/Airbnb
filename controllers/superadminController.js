@@ -8,7 +8,7 @@ const Task = require('../models/Task');
 // Get all hosts
 const getAllHosts = async (req, res) => {
   try {
-    const hosts = await User.find({ isHost: true })
+    const hosts = await User.find({ host: true, hostId: null })
       .select('-password')
       .sort({ createdAt: -1 });
 
@@ -27,7 +27,7 @@ const getHostDetails = async (req, res) => {
   try {
     const { hostId } = req.params;
 
-    const host = await User.findOne({ _id: hostId, isHost: true })
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null })
       .select('-password');
 
     if (!host) {
@@ -67,7 +67,7 @@ const getHostUsers = async (req, res) => {
     const { hostId } = req.params;
 
     // Verify host exists
-    const host = await User.findOne({ _id: hostId, isHost: true });
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null });
     if (!host) {
       return res.status(404).json({ error: 'Host not found' });
     }
@@ -93,7 +93,7 @@ const getHostProperties = async (req, res) => {
     const { hostId } = req.params;
 
     // Verify host exists
-    const host = await User.findOne({ _id: hostId, isHost: true });
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null });
     if (!host) {
       return res.status(404).json({ error: 'Host not found' });
     }
@@ -118,7 +118,7 @@ const getHostBookings = async (req, res) => {
     const { hostId } = req.params;
 
     // Verify host exists
-    const host = await User.findOne({ _id: hostId, isHost: true });
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null });
     if (!host) {
       return res.status(404).json({ error: 'Host not found' });
     }
@@ -145,7 +145,7 @@ const getHostGuests = async (req, res) => {
     const { hostId } = req.params;
 
     // Verify host exists
-    const host = await User.findOne({ _id: hostId, isHost: true });
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null });
     if (!host) {
       return res.status(404).json({ error: 'Host not found' });
     }
@@ -170,7 +170,7 @@ const getHostTasks = async (req, res) => {
     const { hostId } = req.params;
 
     // Verify host exists
-    const host = await User.findOne({ _id: hostId, isHost: true });
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null });
     if (!host) {
       return res.status(404).json({ error: 'Host not found' });
     }
@@ -197,7 +197,7 @@ const getHostPayments = async (req, res) => {
     const { hostId } = req.params;
 
     // Verify host exists
-    const host = await User.findOne({ _id: hostId, isHost: true });
+    const host = await User.findOne({ _id: hostId, host: true, hostId: null });
     if (!host) {
       return res.status(404).json({ error: 'Host not found' });
     }
@@ -229,8 +229,8 @@ const getSystemStatistics = async (req, res) => {
       totalTasks,
       totalPayments
     ] = await Promise.all([
-      User.countDocuments({ isHost: true }),
-      User.countDocuments({ isHost: false }),
+      User.countDocuments({ host: true, hostId: null }),
+      User.countDocuments({ $or: [{ host: false }, { hostId: { $ne: null } }] }),
       Property.countDocuments(),
       Booking.countDocuments(),
       Guest.countDocuments(),

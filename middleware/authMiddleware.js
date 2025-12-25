@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
 // Protect routes - verify JWT token
 const protect = async (req, res, next) => {
@@ -25,6 +26,48 @@ const protect = async (req, res, next) => {
     try {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-in-production');
+
+      // Handle impersonation token
+      if (decoded.impersonation) {
+        console.log('🎭 Impersonation token detected');
+        
+        // Log impersonated action (optional - can be enabled/disabled via env)
+        if (process.env.ENABLE_IMPERSONATION_LOGGING === 'true') {
+          // Fire and forget - don't await to avoid slowing down requests
+          AuditLog.create({
+            action: 'IMPERSONATION_ACTION',
+            superadminId: decoded.impersonatedBy,
+            superadminEmail: '', // We don't have this readily available
+            targetUserId: decoded.userId,
+            targetUserEmail: '',
+            endpoint: req.originalUrl || req.url,
+            method: req.method,
+            ipAddress: req.ip || req.connection.remoteAddress,
+            userAgent: req.headers['user-agent'],
+            timestamp: new Date()
+          }).catch(err => console.error('Failed to log impersonation action:', err));
+        }
+
+        // Get host user from token and attach to request
+        const host = await User.findById(decoded.userId)
+          .select('-password')
+          .populate('role', 'name permissions')
+          .populate('permissions', 'name sub_permissions');
+
+        if (!host) {
+          return res.status(401).json({ error: 'Impersonated user not found' });
+        }
+
+        // Attach user with impersonation metadata
+        req.user = {
+          ...host.toObject(),
+          impersonation: true,
+          impersonatedBy: decoded.impersonatedBy
+        };
+        
+        req.isImpersonating = true;
+        return next();
+      }
 
       // Check if this is superadmin token
       if (decoded.userId === 'superadmin') {
