@@ -11,11 +11,15 @@ const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
 
-    // List of allowed origins
-    const allowedOrigins = [
-      "https://airbnb-production-57d7.up.railway.app",
-      process.env.FRONTEND_URL,
-    ].filter(Boolean); // Remove undefined values
+      // List of allowed origins
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "https://airbnb-production-57d7.up.railway.app",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean); // Remove undefined values
 
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
